@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio agente pedagógico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+
+/* ── Variables ── */
+:root {
+  --bg:           #0f0f0f;
+  --bg2:          #161616;
+  --bg3:          #1f1f1f;
+  --bg4:          #2a2a2a;
+  --border:       #2e2e2e;
+  --border2:      #3a3a3a;
+  --text:         #e8e8e8;
+  --text2:        #a0a0a0;
+  --text3:        #606060;
+  --accent:       #7eb8f7;
+  --accent2:      #5a9fd4;
+  --user-bg:      #1a2332;
+  --user-border:  #2a4060;
+  --agent-bg:     #1a1a1a;
+  --agent-border: #2e2e2e;
+  --green:        #4caf78;
+  --yellow:       #d4a843;
+  --red:          #c45f5f;
+  --purple:       #9b7fd4;
+  --teal:         #4db8a8;
+  --font:         'IBM Plex Sans', sans-serif;
+  --mono:         'IBM Plex Mono', monospace;
+  --radius:       6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* ── Layout principal ── */
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+header {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.header-left h1 {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+#model-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Indicador de turnos ── */
+#turnos-indicator {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.turno-dots { display: flex; gap: 2px; }
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border2);
+  transition: background .3s;
+}
+.dot.usado  { background: var(--accent2); }
+.dot.ultimo { background: var(--yellow); }
+
+/* ── Indicador prompt activo ── */
+#prompt-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.03em;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+  title: "";
+}
+#prompt-tag.activo { color: var(--accent2); border-color: rgba(90,159,212,.35); }
+
+/* ── Toggle RAG ── */
+#btn-rag-toggle {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .2s;
+}
+#btn-rag-toggle.on  { border-color: var(--green); color: var(--green); background: rgba(76,175,120,.08); }
+#btn-rag-toggle.off { border-color: var(--red);   color: var(--red);   background: rgba(196,95,95,.08); }
+
+/* ── Botones icono ── */
+.btn-icon {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 5px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-icon:hover  { border-color: var(--accent); color: var(--accent); }
+.btn-icon.active { border-color: var(--accent); color: var(--accent); background: rgba(126,184,247,0.06); }
+
+/* ── Panel system prompt ── */
+#prompt-panel {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .3s ease;
+}
+#prompt-panel.open { max-height: 280px; }
+
+.prompt-inner { padding: 12px 20px; }
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.prompt-header span {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.prompt-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+select.prompt-select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+}
+select.prompt-select:focus { border-color: var(--accent); }
+
+/* botón limpiar prompt */
+#btn-prompt-clear {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .2s;
+}
+#btn-prompt-clear:hover { border-color: var(--red); color: var(--red); }
+
+#prompt-textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 8px 10px;
+  resize: none;
+  height: 140px;
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color .2s;
+}
+#prompt-textarea:focus { border-color: var(--accent2); }
+
+/* ── Panel herramientas ── */
+#tools-panel {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .3s ease;
+}
+#tools-panel.open { max-height: 320px; }
+
+.tools-inner {
+  padding: 14px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px 20px;
+}
+
+.tool-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tool-item label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tool-item label span { color: var(--accent); font-weight: 400; }
+
+.tool-item input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  height: 3px;
+  cursor: pointer;
+}
+
+.tool-item input[type="number"],
+.tool-item input[type="text"],
+.tool-item select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 7px;
+  border-radius: var(--radius);
+  outline: none;
+  width: 100%;
+}
+.tool-item input:focus,
+.tool-item select:focus { border-color: var(--accent2); }
+.tool-item option, #sel-coleccion option {
+  background: var(--bg3);
+  color: var(--text);
+}
+
+/* separador visual dentro del panel herramientas */
+.tools-divider {
+  grid-column: 1 / -1;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2px 0;
+}
+
+.tools-section-label {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Chat ── */
+#chat {
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+}
+
+#chat::-webkit-scrollbar { width: 4px; }
+#chat::-webkit-scrollbar-track { background: transparent; }
+#chat::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.bienvenida {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: 0.03em;
+  animation: fadeIn .6s ease;
+}
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 78%;
+  animation: slideIn .25s ease;
+}
+.msg.user  { align-self: flex-end;  align-items: flex-end; }
+.msg.agent { align-self: flex-start; align-items: flex-start; }
+
+.msg-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  color: var(--text3);
+}
+.msg.user .msg-label { color: var(--accent2); }
+
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  line-height: 1.65;
+  font-size: 13.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.msg.user .msg-bubble  { background: var(--user-bg);  border: 1px solid var(--user-border);  color: var(--text); }
+.msg.agent .msg-bubble { background: var(--agent-bg); border: 1px solid var(--agent-border); color: var(--text); }
+
+.thinking {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--agent-bg);
+  border: 1px solid var(--agent-border);
+  border-radius: var(--radius);
+}
+.thinking span {
+  width: 5px; height: 5px;
+  background: var(--text3);
+  border-radius: 50%;
+  animation: pulse 1.2s infinite;
+}
+.thinking span:nth-child(2) { animation-delay: .2s; }
+.thinking span:nth-child(3) { animation-delay: .4s; }
+
+/* ── Barra inferior ── */
+#bottom-bar {
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#acciones {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-accion {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-accion:hover         { background: var(--bg3); }
+.btn-accion.reset:hover   { border-color: var(--red);    color: var(--red); }
+.btn-accion.export:hover  { border-color: var(--teal);   color: var(--teal); }
+.btn-accion.nueva:hover   { border-color: var(--green);  color: var(--green); }
+.btn-accion.default:hover { border-color: var(--yellow); color: var(--yellow); }
+
+/* Panel guardar */
+#guardar-panel {
+  display: none;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  animation: fadeIn .2s ease;
+}
+#guardar-panel.open { display: flex; }
+
+#guardar-panel input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  outline: none;
+  flex: 1;
+  min-width: 140px;
+}
+#guardar-panel input:focus       { border-color: var(--accent2); }
+#guardar-panel input::placeholder { color: var(--text3); }
+
+/* ── Modal ficha experimental ── */
+#modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#modal-overlay.open { display: flex; }
+
+#modal-ficha {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+  width: 92%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#modal-ficha::-webkit-scrollbar { width: 3px; }
+#modal-ficha::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.modal-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.field label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: .04em;
+}
+
+.field select,
+.field input[type="text"],
+.field input[type="number"],
+.field textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  outline: none;
+  width: 100%;
+}
+.field select:focus,
+.field input:focus,
+.field textarea:focus { border-color: var(--accent2); }
+.field textarea { resize: vertical; min-height: 56px; line-height: 1.5; }
+
+.field-extra { display: none; }
+.field-extra.visible { display: flex; flex-direction: column; gap: 5px; }
+
+.slider-wrap { display: flex; flex-direction: column; gap: 4px; }
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+.slider-val {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  text-align: center;
+}
+.field input[type="range"] { accent-color: var(--accent); padding: 0; }
+
+.modal-cats { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.cat-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.btn-cat {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: 0.03em;
+}
+.btn-cat[data-cat="exito"]       { background: rgba(76,175,120,.12);  border-color: rgba(76,175,120,.3);  color: var(--green);  }
+.btn-cat[data-cat="error"]       { background: rgba(196,95,95,.12);   border-color: rgba(196,95,95,.3);   color: var(--red);    }
+.btn-cat[data-cat="dudoso"]      { background: rgba(212,168,67,.12);  border-color: rgba(212,168,67,.3);  color: var(--yellow); }
+.btn-cat[data-cat="jocoso"]      { background: rgba(155,127,212,.12); border-color: rgba(155,127,212,.3); color: var(--purple); }
+.btn-cat[data-cat="interesante"] { background: rgba(126,184,247,.12); border-color: rgba(126,184,247,.3); color: var(--accent); }
+.btn-cat[data-cat="para_revisar"]{ background: rgba(77,184,168,.12);  border-color: rgba(77,184,168,.3);  color: var(--teal);   }
+.btn-cat:hover { filter: brightness(1.2); }
+
+.btn-sm {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-sm:hover { border-color: var(--red); color: var(--red); }
+
+.sep { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
+
+/* Input de chat */
+#input-row { display: flex; gap: 8px; align-items: flex-end; }
+
+#user-input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  outline: none;
+  resize: none;
+  min-height: 38px;
+  max-height: 120px;
+  overflow-y: auto;
+  transition: border-color .2s;
+}
+#user-input:focus       { border-color: var(--accent2); }
+#user-input::placeholder { color: var(--text3); }
+
+#btn-send {
+  background: var(--accent2);
+  border: none;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .2s;
+  white-space: nowrap;
+  height: 38px;
+  letter-spacing: 0.03em;
+}
+#btn-send:hover    { background: var(--accent); }
+#btn-send:disabled { background: var(--border2); color: var(--text3); cursor: default; }
+
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  opacity: 0;
+  transition: all .3s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Animaciones ── */
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse   { 0%,80%,100% { transform: scale(.8); opacity:.4; } 40% { transform: scale(1); opacity:1; } }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-left">
+      <h1>LABORATORIO · agente pedagógico</h1>
+      <span id="model-tag">—</span>
+    </div>
+    <div class="header-right">
+      <div id="turnos-indicator">
+        <div class="turno-dots" id="dots"></div>
+        <span id="turnos-texto">0 / 8</span>
+      </div>
+      <span id="prompt-tag">sin prompt</span>
+      <button id="btn-rag-toggle" class="off">RAG off</button>
+      <button class="btn-icon" id="btn-prompt-toggle">prompt</button>
+      <button class="btn-icon" id="btn-tools-toggle">⚙ herramientas</button>
+    </div>
+  </header>
+
+  <!-- ── Panel system prompt ── -->
+  <div id="prompt-panel">
+    <div class="prompt-inner">
+      <div class="prompt-header">
+        <span>system prompt activo</span>
+        <div class="prompt-controls">
+          <select class="prompt-select" id="prompt-selector">
+            <option value="">— cargar desde prompts/ —</option>
+          </select>
+          <button class="btn-icon" id="btn-prompt-apply">aplicar</button>
+          <button id="btn-prompt-clear">limpiar</button>
+        </div>
+      </div>
+      <textarea id="prompt-textarea" spellcheck="false" placeholder="sin prompt — el modelo responde con su comportamiento base"></textarea>
+    </div>
+  </div>
+
+  <!-- ── Panel herramientas ── -->
+  <div id="tools-panel">
+    <div class="tools-inner">
+
+      <div class="tools-section-label">modelo</div>
+
+      <div class="tool-item">
+        <label>timeout seg <span id="val-timeout">180</span></label>
+        <input type="range" id="sl-timeout" min="30" max="600" step="30" value="180">
+      </div>
+      <div class="tool-item">
+        <label>modelo</label>
+        <select id="sel-model"></select>
+      </div>
+
+      <div class="tool-item">
+        <label>temperatura <span id="val-temp">0.6</span></label>
+        <input type="range" id="sl-temp" min="0" max="2" step="0.05" value="0.6">
+      </div>
+
+      <div class="tool-item">
+        <label>top_p <span id="val-topp">0.92</span></label>
+        <input type="range" id="sl-topp" min="0" max="1" step="0.01" value="0.92">
+      </div>
+
+      <div class="tool-item">
+        <label>top_k <span id="val-topk">40</span></label>
+        <input type="range" id="sl-topk" min="0" max="100" step="1" value="40">
+      </div>
+
+      <div class="tool-item">
+        <label>max tokens <span id="val-tokens">800</span></label>
+        <input type="range" id="sl-tokens" min="100" max="2000" step="50" value="800">
+      </div>
+
+      <div class="tool-item">
+        <label>turnos historial <span id="val-hist">8</span></label>
+        <input type="range" id="sl-hist" min="2" max="30" step="1" value="8">
+      </div>
+
+      <hr class="tools-divider">
+      <div class="tools-section-label">rag</div>
+
+      <div class="tool-item">
+        <label>umbral rag <span id="val-umbral">0.35</span></label>
+        <input type="range" id="sl-umbral" min="0" max="1" step="0.05" value="0.35">
+      </div>
+
+      <div class="tool-item">
+        <label>n resultados <span id="val-nresults">8</span></label>
+        <input type="range" id="sl-nresults" min="1" max="30" step="1" value="8">
+      </div>
+
+      <div class="tool-item">
+        <label>colección</label>
+        <select id="sel-coleccion">
+          <option value="">cargando...</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Chat ── -->
+  <div id="chat">
+    <div class="bienvenida" id="bienvenida">
+      inicia la conversación
+    </div>
+  </div>
+
+  <!-- ── Barra inferior ── -->
+  <div id="bottom-bar">
+
+    <!-- Acciones -->
+    <div id="acciones">
+      <button class="btn-accion" id="btn-guardar-toggle">guardar</button>
+      <div class="sep"></div>
+      <button class="btn-accion reset"   id="btn-reset">reset conversación</button>
+      <button class="btn-accion default" id="btn-reset-config">reset parámetros</button>
+      <button class="btn-accion nueva"   id="btn-nueva-sesion">nueva sesión</button>
+      <button class="btn-accion export"  id="btn-export">exportar</button>
+      <button class="btn-accion"         id="btn-ficha-toggle">ficha exp.</button>
+    </div>
+
+    <!-- Panel guardar -->
+    <div id="guardar-panel">
+      <input type="text" id="etiqueta-input" placeholder="etiqueta opcional (ej: prueba-rag-musica-v2)">
+      <div class="cat-btns">
+        <button class="btn-cat" data-cat="exito">✓ éxito</button>
+        <button class="btn-cat" data-cat="error">✗ error</button>
+        <button class="btn-cat" data-cat="dudoso">? dudoso</button>
+        <button class="btn-cat" data-cat="jocoso">☺ jocoso</button>
+        <button class="btn-cat" data-cat="interesante">✦ interesante</button>
+        <button class="btn-cat" data-cat="para_revisar">◈ para revisar</button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div id="input-row">
+      <textarea id="user-input" rows="1" placeholder="escribe tu mensaje..."></textarea>
+      <button id="btn-send">enviar</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ── Modal ficha experimental ── -->
+<div id="modal-overlay">
+  <div id="modal-ficha">
+    <div class="modal-title">ficha experimental</div>
+
+    <div class="field">
+      <label>situación</label>
+      <textarea id="f-situacion" placeholder="descripción breve de la situación..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>perfil docente simulado</label>
+      <select id="f-perfil">
+        <option value="ninguno">ninguno</option>
+        <option value="escéptico">escéptico</option>
+        <option value="entusiasta">entusiasta</option>
+        <option value="experto">experto</option>
+        <option value="novato">novato</option>
+        <option value="resistente a la tecnología">resistente a la tecnología</option>
+        <option value="otro">otro</option>
+      </select>
+      <div class="field-extra" id="perfil-otro-wrap">
+        <input type="text" id="f-perfil-otro" placeholder="describe el perfil...">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>objetivo de esta prueba</label>
+      <textarea id="f-objetivo" placeholder="qué querías validar..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>nota inicial</label>
+      <textarea id="f-nota-inicial" placeholder="campo libre..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>turnos hasta respuesta útil</label>
+      <input type="number" id="f-turnos" min="0" placeholder="número">
+    </div>
+
+    <div class="field">
+      <label>supuestos del agente</label>
+      <select id="f-supuestos">
+        <option value="sí">sí</option>
+        <option value="no">no</option>
+        <option value="parcial">parcial</option>
+      </select>
+      <div class="field-extra" id="supuestos-slider-wrap">
+        <div class="slider-wrap">
+          <div class="slider-labels"><span>sí</span><span>no</span></div>
+          <input type="range" id="f-supuestos-slider" min="0" max="100" value="50">
+          <div class="slider-val" id="f-supuestos-val">sí: 50% / no: 50%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>¿fue el modelo o el prompt?</label>
+      <select id="f-modeloprompt">
+        <option value="modelo">modelo</option>
+        <option value="prompt">prompt</option>
+        <option value="ambos">ambos</option>
+        <option value="no sé">no sé</option>
+      </select>
+      <div class="field-extra" id="modeloprompt-slider-wrap">
+        <div class="slider-wrap">
+          <div class="slider-labels"><span>modelo</span><span>prompt</span></div>
+          <input type="range" id="f-mp-slider" min="0" max="100" value="50">
+          <div class="slider-val" id="f-mp-val">modelo: 50% / prompt: 50%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>¿falló el RAG o el modelo?</label>
+      <select id="f-fallo">
+        <option value="no aplica">no aplica</option>
+        <option value="rag">RAG</option>
+        <option value="modelo">modelo</option>
+        <option value="ambos">ambos</option>
+        <option value="no sé">no sé</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>tipo de prueba</label>
+      <select id="f-tipo-prueba">
+        <option value="exploratoria">exploratoria</option>
+        <option value="guion">guion predefinido</option>
+        <option value="replicacion">replicación de sesión anterior</option>
+        <option value="comparativa">comparativa</option>
+      </select>
+    </div>
+
+    <div class="field" id="f-referencia-wrap">
+      <label>referencia a sesión comparada</label>
+      <input type="text" id="f-referencia" placeholder="nombre o fecha de la sesión de referencia">
+    </div>
+
+    <div class="field">
+      <label>reacción visceral</label>
+      <textarea id="f-reaccion" placeholder="campo libre..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>etiqueta</label>
+      <input type="text" id="f-etiqueta" placeholder="ej: prueba-rag-musica-umbral035">
+    </div>
+
+    <div class="field">
+      <label>categoría</label>
+      <div class="modal-cats">
+        <button class="btn-cat" data-cat="exito">✓ éxito</button>
+        <button class="btn-cat" data-cat="error">✗ error</button>
+        <button class="btn-cat" data-cat="dudoso">? dudoso</button>
+        <button class="btn-cat" data-cat="jocoso">☺ jocoso</button>
+        <button class="btn-cat" data-cat="interesante">✦ interesante</button>
+        <button class="btn-cat" data-cat="para_revisar">◈ para revisar</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-sm" id="btn-modal-cancelar">cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Estado local ──
+let maxHistory      = 8;
+let esperando       = false;
+let promptArchivoTexto  = "";
+let promptArchivoNombre = "";
+let cargandoPrompt      = false;
+
+// Config default para reset
+const CONFIG_DEFAULT = {
+  temperature: 0.6,
+  top_p:       0.92,
+  top_k:       40,
+  max_tokens:  800,
+  max_history: 8,
+  umbral_rag:  0.35,
+  n_results:   8,
+  timeout:     180,
+};
+
+// ── Init ──
+async function init() {
+  const res  = await fetch("/api/config");
+  const data = await res.json();
+  const cfg  = data.config;
+
+  // Header
+  document.getElementById("model-tag").textContent = cfg.model;
+  actualizarPromptTag(data.prompt_origen, data.system_prompt);
+
+  // Sliders modelo
+  setSlider("sl-temp",    "val-temp",    cfg.temperature, 2);
+  setSlider("sl-topp",    "val-topp",    cfg.top_p,       2);
+  setSlider("sl-topk",    "val-topk",    cfg.top_k,       0);
+  setSlider("sl-tokens",  "val-tokens",  cfg.max_tokens,  0);
+  setSlider("sl-hist",    "val-hist",    cfg.max_history, 0);
+  setSlider("sl-umbral",  "val-umbral",  cfg.umbral_rag,  2);
+  setSlider("sl-nresults","val-nresults",cfg.n_results,   0);
+  setSlider("sl-timeout", "val-timeout", cfg.timeout, 0);
+
+  maxHistory = cfg.max_history;
+  actualizarDots(0, maxHistory);
+
+  // Textarea prompt
+  document.getElementById("prompt-textarea").value = data.system_prompt || "";
+
+  // Listas
+  await cargarListaPrompts();
+  await cargarListaModelos(cfg.model, data.modelos);
+  await cargarColecciones();
+
+  // Estado RAG inicial
+  const ragRes  = await fetch("/api/rag/status");
+  const ragData = await ragRes.json();
+  actualizarBtnRag(ragData.rag_activo);
+}
+
+function setSlider(sliderId, valId, valor, decimals) {
+  document.getElementById(sliderId).value = valor;
+  document.getElementById(valId).textContent = decimals === 0
+    ? parseInt(valor)
+    : parseFloat(valor).toFixed(decimals);
+}
+
+// ── Sliders ──
+function bindSlider(id, valId, key, decimals=2) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener("input", () => {
+    const v = parseFloat(sl.value);
+    vl.textContent = decimals === 0 ? parseInt(v) : v.toFixed(decimals);
+    enviarConfig({ [key]: decimals === 0 ? parseInt(v) : v });
+  });
+}
+
+bindSlider("sl-temp",    "val-temp",    "temperature", 2);
+bindSlider("sl-topp",    "val-topp",    "top_p",       2);
+bindSlider("sl-topk",    "val-topk",    "top_k",       0);
+bindSlider("sl-tokens",  "val-tokens",  "max_tokens",  0);
+bindSlider("sl-hist",    "val-hist",    "max_history", 0);
+bindSlider("sl-umbral",  "val-umbral",  "umbral_rag",  2);
+bindSlider("sl-nresults","val-nresults","n_results",   0);
+bindSlider("sl-timeout", "val-timeout", "timeout", 0);
+
+document.getElementById("sl-hist").addEventListener("input", () => {
+  maxHistory = parseInt(document.getElementById("sl-hist").value);
+});
+
+// ── Selector de modelo ──
+async function cargarListaModelos(modeloActivo, listaModelos) {
+  const sel = document.getElementById("sel-model");
+  sel.innerHTML = "";
+  (listaModelos || [modeloActivo]).forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    if (m === modeloActivo) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById("sel-model").addEventListener("change", () => {
+  const v = document.getElementById("sel-model").value;
+  enviarConfig({ model: v });
+  document.getElementById("model-tag").textContent = v;
+});
+
+// ── Selector de colección ──
+
+async function cargarColecciones() {
+  const sel = document.getElementById("sel-coleccion");
+  try {
+    const res  = await fetch("/api/rag/colecciones");
+    const data = await res.json();
+    console.log("[DEBUG colecciones]", data);
+    sel.innerHTML = "";
+    data.colecciones.forEach(nombre => {
+      const opt = document.createElement("option");
+      opt.value = nombre;
+      opt.textContent = nombre;
+      if (nombre === data.activa) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    console.log("[DEBUG colecciones error]", e);
+    sel.innerHTML = "<option>no disponible</option>";
+  }
+}
+
+document.getElementById("sel-coleccion").addEventListener("change", async () => {
+  const nombre = document.getElementById("sel-coleccion").value;
+  const res    = await fetch("/api/rag/coleccion", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ coleccion: nombre })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    toast(`Colección: ${data.coleccion} — ${data.chunks} chunks`);
+  } else {
+    toast(`Error: ${data.error}`);
+  }
+});
+
+// ── Config ──
+async function enviarConfig(data) {
+  await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+}
+
+// Reset parámetros a valores default
+document.getElementById("btn-reset-config").addEventListener("click", async () => {
+  if (!confirm("¿Restablecer todos los parámetros a sus valores por defecto?")) return;
+  await enviarConfig(CONFIG_DEFAULT);
+  setSlider("sl-temp",    "val-temp",    CONFIG_DEFAULT.temperature, 2);
+  setSlider("sl-topp",    "val-topp",    CONFIG_DEFAULT.top_p,       2);
+  setSlider("sl-topk",    "val-topk",    CONFIG_DEFAULT.top_k,       0);
+  setSlider("sl-tokens",  "val-tokens",  CONFIG_DEFAULT.max_tokens,  0);
+  setSlider("sl-hist",    "val-hist",    CONFIG_DEFAULT.max_history, 0);
+  setSlider("sl-umbral",  "val-umbral",  CONFIG_DEFAULT.umbral_rag,  2);
+  setSlider("sl-nresults","val-nresults",CONFIG_DEFAULT.n_results,   0);
+  maxHistory = CONFIG_DEFAULT.max_history;
+  toast("Parámetros restablecidos");
+});
+
+// ── Toggle RAG ──
+function actualizarBtnRag(activo) {
+  const btn = document.getElementById("btn-rag-toggle");
+  btn.textContent = activo ? "RAG on" : "RAG off";
+  btn.className   = activo ? "on" : "off";
+}
+
+document.getElementById("btn-rag-toggle").addEventListener("click", async () => {
+  const res  = await fetch("/api/rag/toggle", { method: "POST" });
+  const data = await res.json();
+  actualizarBtnRag(data.rag_activo);
+  toast(`RAG ${data.rag_activo ? "activado" : "desactivado"}`);
+});
+
+// ── Indicador prompt activo ──
+function actualizarPromptTag(origen, contenido) {
+  const tag = document.getElementById("prompt-tag");
+  if (!contenido || contenido.trim() === "") {
+    tag.textContent = "sin prompt";
+    tag.classList.remove("activo");
+  } else {
+    tag.textContent = origen || "custom";
+    tag.classList.add("activo");
+    tag.title = contenido.slice(0, 120) + (contenido.length > 120 ? "…" : "");
+  }
+}
+
+// ── Dots de turnos ──
+function actualizarDots(usados, max) {
+  const cont    = document.getElementById("dots");
+  cont.innerHTML = "";
+  const visible = Math.min(max, 12);
+  for (let i = 0; i < visible; i++) {
+    const d = document.createElement("div");
+    d.className = "dot";
+    if (i < usados) d.classList.add(i === usados - 1 ? "ultimo" : "usado");
+    cont.appendChild(d);
+  }
+  document.getElementById("turnos-texto").textContent = `${usados} / ${max}`;
+}
+
+// ── Prompt panel ──
+document.getElementById("btn-prompt-toggle").addEventListener("click", () => {
+  document.getElementById("prompt-panel").classList.toggle("open");
+  document.getElementById("btn-prompt-toggle").classList.toggle("active");
+  document.getElementById("tools-panel").classList.remove("open");
+  document.getElementById("btn-tools-toggle").classList.remove("active");
+});
+
+document.getElementById("btn-prompt-apply").addEventListener("click", async () => {
+  const prompt = document.getElementById("prompt-textarea").value.trim();
+  let origen = "custom";
+  if (promptArchivoNombre && prompt === promptArchivoTexto) {
+    origen = promptArchivoNombre.replace(".txt", "");
+  }
+  await fetch("/api/system_prompt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, origen })
+  });
+  actualizarPromptTag(origen, prompt);
+  toast(`Prompt aplicado — ${origen}`);
+});
+
+document.getElementById("btn-prompt-clear").addEventListener("click", async () => {
+  document.getElementById("prompt-textarea").value = "";
+  promptArchivoNombre = "";
+  promptArchivoTexto  = "";
+  await fetch("/api/system_prompt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: "", origen: "ninguno" })
+  });
+  actualizarPromptTag("ninguno", "");
+  toast("Prompt eliminado — sesión neutra");
+});
+
+// ── Lista de prompts ──
+async function cargarListaPrompts() {
+  const res  = await fetch("/api/prompts");
+  const data = await res.json();
+  const sel  = document.getElementById("prompt-selector");
+  data.prompts.forEach(nombre => {
+    const opt = document.createElement("option");
+    opt.value = nombre;
+    opt.textContent = nombre.replace(".txt", "");
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById("prompt-selector").addEventListener("change", async (e) => {
+  const nombre = e.target.value;
+  if (!nombre) return;
+  const res  = await fetch(`/api/prompts/${nombre}`);
+  const data = await res.json();
+  cargandoPrompt = true;
+  document.getElementById("prompt-textarea").value = data.contenido;
+  promptArchivoTexto  = data.contenido.trim();
+  promptArchivoNombre = nombre;
+  setTimeout(() => { cargandoPrompt = false; }, 50);
+});
+
+document.getElementById("prompt-textarea").addEventListener("input", () => {
+  const actual = document.getElementById("prompt-textarea").value.trim();
+  if (!cargandoPrompt && promptArchivoNombre && actual !== promptArchivoTexto) {
+    promptArchivoNombre = "custom";
+  }
+});
+
+// ── Tools panel ──
+document.getElementById("btn-tools-toggle").addEventListener("click", () => {
+  document.getElementById("tools-panel").classList.toggle("open");
+  document.getElementById("btn-tools-toggle").classList.toggle("active");
+  document.getElementById("prompt-panel").classList.remove("open");
+  document.getElementById("btn-prompt-toggle").classList.remove("active");
+});
+
+// ── Chat ──
+function agregarMsg(role, texto) {
+  const bienvenida = document.getElementById("bienvenida");
+  if (bienvenida) bienvenida.remove();
+
+  const chat   = document.getElementById("chat");
+  const wrap   = document.createElement("div");
+  wrap.className = `msg ${role}`;
+
+  const label  = document.createElement("div");
+  label.className  = "msg-label";
+  label.textContent = role === "user" ? "tú" : "agente";
+
+  const bubble = document.createElement("div");
+  bubble.className  = "msg-bubble";
+  bubble.textContent = texto;
+
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  return wrap;
+}
+
+function mostrarPensando() {
+  const bienvenida = document.getElementById("bienvenida");
+  if (bienvenida) bienvenida.remove();
+
+  const chat = document.getElementById("chat");
+  const wrap = document.createElement("div");
+  wrap.className = "msg agent";
+  wrap.id = "pensando";
+
+  const label = document.createElement("div");
+  label.className  = "msg-label";
+  label.textContent = "agente";
+
+  const dots = document.createElement("div");
+  dots.className = "thinking";
+  dots.innerHTML = "<span></span><span></span><span></span>";
+
+  wrap.appendChild(label);
+  wrap.appendChild(dots);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function quitarPensando() {
+  const el = document.getElementById("pensando");
+  if (el) el.remove();
+}
+
+async function enviarMensaje() {
+  if (esperando) return;
+  const input = document.getElementById("user-input");
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  input.value = "";
+  input.style.height = "38px";
+  esperando = true;
+  document.getElementById("btn-send").disabled = true;
+
+  agregarMsg("user", texto);
+  mostrarPensando();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mensaje: texto, stream: true })
+    });
+
+    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer    = "";
+    let bubble    = null;
+    let textoAcumulado = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lineas = buffer.split("\n");
+      buffer = lineas.pop(); // última línea incompleta queda en buffer
+
+      for (const linea of lineas) {
+        if (!linea.startsWith("data: ")) continue;
+        const raw = linea.slice(6).trim();
+        if (!raw) continue;
+
+        let evento;
+        try { evento = JSON.parse(raw); } catch { continue; }
+
+        if (evento.tipo === "meta") {
+          quitarPensando();
+          actualizarDots(evento.turnos_usados, evento.max_history);
+          maxHistory = evento.max_history;
+
+        } else if (evento.tipo === "token") {
+          if (!bubble) {
+            // crear burbuja vacía la primera vez
+            const wrap  = document.createElement("div");
+            wrap.className = "msg agent";
+            const label = document.createElement("div");
+            label.className  = "msg-label";
+            label.textContent = "agente";
+            bubble = document.createElement("div");
+            bubble.className = "msg-bubble";
+            wrap.appendChild(label);
+            wrap.appendChild(bubble);
+            document.getElementById("chat").appendChild(wrap);
+          }
+          textoAcumulado += evento.texto;
+          bubble.textContent = textoAcumulado;
+          document.getElementById("chat").scrollTop = document.getElementById("chat").scrollHeight;
+
+        } else if (evento.tipo === "fin") {
+          actualizarDots(evento.turnos_usados, maxHistory);
+
+        } else if (evento.tipo === "error") {
+          quitarPensando();
+          agregarMsg("agent", `Error: ${evento.mensaje}`);
+        }
+      }
+    }
+
+  } catch (err) {
+    quitarPensando();
+    agregarMsg("agent", "Error al conectar con el servidor. ¿Está LM Studio ejecutándose?");
+  }
+
+  esperando = false;
+  document.getElementById("btn-send").disabled = false;
+  input.focus();
+}
+
+// ── Input auto-resize ──
+document.getElementById("user-input").addEventListener("input", function() {
+  this.style.height = "38px";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+
+document.getElementById("user-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    enviarMensaje();
+  }
+});
+
+document.getElementById("btn-send").addEventListener("click", enviarMensaje);
+
+// ── Reset conversación ──
+document.getElementById("btn-reset").addEventListener("click", async () => {
+  if (!confirm("¿Reiniciar la conversación?")) return;
+  await fetch("/api/reset", { method: "POST" });
+  document.getElementById("chat").innerHTML =
+    `<div class="bienvenida" id="bienvenida">inicia la conversación</div>`;
+  actualizarDots(0, maxHistory);
+  toast("Conversación reiniciada");
+});
+
+// ── Nueva sesión ──
+document.getElementById("btn-nueva-sesion").addEventListener("click", () => {
+  window.open("/", "_blank");
+});
+
+// ── Guardar panel ──
+document.getElementById("btn-guardar-toggle").addEventListener("click", () => {
+  document.getElementById("guardar-panel").classList.toggle("open");
+});
+
+document.querySelectorAll("#guardar-panel .btn-cat").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const cat      = btn.dataset.cat;
+    const etiqueta = document.getElementById("etiqueta-input").value.trim();
+    const res  = await fetch("/api/guardar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ categoria: cat, etiqueta })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      toast(`Guardado: ${data.archivo}`);
+      document.getElementById("guardar-panel").classList.remove("open");
+      document.getElementById("etiqueta-input").value = "";
+    } else {
+      toast(data.error || "Error al guardar");
+    }
+  });
+});
+
+// ── Exportar ──
+document.getElementById("btn-export").addEventListener("click", async () => {
+  const res  = await fetch("/api/exportar");
+  const data = await res.json();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `sesion_${new Date().toISOString().slice(0,16).replace("T","_")}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Sesión exportada");
+});
+
+// ── Modal ficha experimental ──
+document.getElementById("btn-ficha-toggle").addEventListener("click", () => {
+  document.getElementById("modal-overlay").classList.add("open");
+});
+
+document.getElementById("btn-modal-cancelar").addEventListener("click", () => {
+  document.getElementById("modal-overlay").classList.remove("open");
+});
+
+document.getElementById("modal-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("modal-overlay"))
+    document.getElementById("modal-overlay").classList.remove("open");
+});
+
+// perfil otro
+document.getElementById("f-perfil").addEventListener("change", () => {
+  document.getElementById("perfil-otro-wrap")
+    .classList.toggle("visible", document.getElementById("f-perfil").value === "otro");
+});
+
+// supuestos slider
+document.getElementById("f-supuestos").addEventListener("change", () => {
+  document.getElementById("supuestos-slider-wrap")
+    .classList.toggle("visible", document.getElementById("f-supuestos").value === "parcial");
+});
+document.getElementById("f-supuestos-slider").addEventListener("input", () => {
+  const v = parseInt(document.getElementById("f-supuestos-slider").value);
+  document.getElementById("f-supuestos-val").textContent = `sí: ${v}% / no: ${100-v}%`;
+});
+
+// modelo/prompt slider
+document.getElementById("f-modeloprompt").addEventListener("change", () => {
+  document.getElementById("modeloprompt-slider-wrap")
+    .classList.toggle("visible", document.getElementById("f-modeloprompt").value === "ambos");
+});
+document.getElementById("f-mp-slider").addEventListener("input", () => {
+  const v = parseInt(document.getElementById("f-mp-slider").value);
+  document.getElementById("f-mp-val").textContent = `modelo: ${v}% / prompt: ${100-v}%`;
+});
+
+// referencia sesión comparada — visible solo en replicación y comparativa
+document.getElementById("f-tipo-prueba").addEventListener("change", () => {
+  const v = document.getElementById("f-tipo-prueba").value;
+  document.getElementById("f-referencia-wrap").style.display =
+    (v === "replicacion" || v === "comparativa") ? "flex" : "none";
+});
+document.getElementById("f-referencia-wrap").style.display = "none";
+
+// guardar ficha experimental
+document.querySelectorAll("#modal-ficha .btn-cat").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const cat      = btn.dataset.cat;
+    const etiqueta = document.getElementById("f-etiqueta").value.trim();
+
+    const perfilSelect = document.getElementById("f-perfil").value;
+    const perfil = perfilSelect === "otro"
+      ? document.getElementById("f-perfil-otro").value.trim() || "otro"
+      : perfilSelect;
+
+    const supuestosSelect = document.getElementById("f-supuestos").value;
+    const supuestos = supuestosSelect === "parcial"
+      ? `sí:${document.getElementById("f-supuestos-slider").value}%/no:${100 - parseInt(document.getElementById("f-supuestos-slider").value)}%`
+      : supuestosSelect;
+
+    const mpSelect = document.getElementById("f-modeloprompt").value;
+    const modeloprompt = mpSelect === "ambos"
+      ? `modelo:${document.getElementById("f-mp-slider").value}%/prompt:${100 - parseInt(document.getElementById("f-mp-slider").value)}%`
+      : mpSelect;
+
+    const ficha = {
+      situacion:       document.getElementById("f-situacion").value.trim(),
+      perfil_docente:  perfil,
+      objetivo:        document.getElementById("f-objetivo").value.trim(),
+      nota_inicial:    document.getElementById("f-nota-inicial").value.trim(),
+      turnos_util:     parseInt(document.getElementById("f-turnos").value) || 0,
+      supuestos:       supuestos,
+      modelo_prompt:   modeloprompt,
+      fallo_rag_modelo: document.getElementById("f-fallo").value,
+      tipo_prueba:     document.getElementById("f-tipo-prueba").value,
+      sesion_referencia: document.getElementById("f-referencia").value.trim(),
+      reaccion:        document.getElementById("f-reaccion").value.trim(),
+    };
+
+    const res = await fetch("/api/guardar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ categoria: cat, etiqueta, ficha, experimental: true })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      toast(`Ficha guardada: ${data.archivo}`);
+      document.getElementById("modal-overlay").classList.remove("open");
+    } else {
+      toast(data.error || "Error al guardar");
+    }
+  });
+});
+
+// ── Toast ──
+function toast(msg, ms=2800) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), ms);
+}
+
+// ── Arranque ──
+init();
+</script>
+</body>
+</html>
